@@ -24,35 +24,26 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf().disable() // Disable CSRF protection
-                .cors().and() // Enable CORS
+                .csrf().disable()
+                .cors().and()
                 .authorizeHttpRequests()
-                .requestMatchers(
-                        "/api/auth/register", // Allow registration
-                        "/api/auth/login", // Allow login
-                        "/api/auth/refresh", // Allow token refresh
-                        "/swagger-ui/**", // Allow Swagger UI
-                        "/v3/api-docs/**", // Allow Swagger API docs
-                        "/swagger-resources/**", // Allow Swagger resources
-                        "/webjars/**" // Allow WebJars (used by Swagger)
-                ).permitAll() // Permit all access to the above endpoints
-                .requestMatchers("/api/providers/**").hasAuthority("ROLE_PROVIDER") // Secure provider endpoints
+                .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .requestMatchers("/api/providers/**").hasAuthority("ROLE_PROVIDER")
                 .requestMatchers("/api/bookings/**").hasAuthority("ROLE_CUSTOMER")
-                .requestMatchers("/api/users/**").hasAuthority("ROLE_USER")// Secure customer endpoints
-                .anyRequest().authenticated() // Require authentication for all other endpoints
+                .requestMatchers("/api/users/**").hasAuthority("ROLE_USER")
+                .anyRequest().authenticated()
                 .and()
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS); // Use stateless sessions
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
-        // Add JWT filter before the UsernamePasswordAuthenticationFilter
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+//    @Bean
+//    public PasswordEncoder passwordEncoder() {
+//        return new BCryptPasswordEncoder();
+//    }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {

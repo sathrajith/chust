@@ -1,6 +1,7 @@
 package com.sp.service.provider.controller;
 
 import com.sp.service.provider.model.Booking;
+import com.sp.service.provider.model.BookingStatus;
 import com.sp.service.provider.service.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +12,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/bookings")
 public class BookingController {
-
     @Autowired
     private BookingService bookingService;
 
@@ -42,7 +42,7 @@ public class BookingController {
 
     @PutMapping("/{id}/status")
     public ResponseEntity<Booking> updateBookingStatus(@PathVariable Long id, @RequestParam String status) {
-        Booking updatedBooking = bookingService.updateBookingStatus(id, status);
+        Booking updatedBooking = bookingService.updateBookingStatus(id, BookingStatus.valueOf(status));
         return ResponseEntity.ok(updatedBooking);
     }
 

@@ -10,7 +10,6 @@ import java.util.Optional;
 
 @Service
 public class ReviewService {
-
     @Autowired
     private ReviewRepository reviewRepository;
 
@@ -22,13 +21,9 @@ public class ReviewService {
         return reviewRepository.findById(id);
     }
 
-//    public List<Review> getReviewsByProviderId(Long providerId) {
-//        return reviewRepository.findByProviderId(providerId);
-//    }
-//
-//    public List<Review> getReviewsByCustomerId(Long customerId) {
-//        return reviewRepository.findByCustomerId(customerId);
-//    }
+    public List<Review> getReviewsByProviderId(Long providerId) {
+        return reviewRepository.findByProviderId(providerId);
+    }
 
     public Review updateReview(Long id, Review updatedReview) {
         Optional<Review> optionalReview = reviewRepository.findById(id);

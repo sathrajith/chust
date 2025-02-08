@@ -15,12 +15,7 @@ public class Review {
     @JoinColumn(name = "service_provider_id")
     private ServiceProvider provider;
 
-    //private Long providerId;
-
-//    @ManyToOne
-//    @JoinColumn(name = "customer_id")
-//    private User customer;
-
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -45,19 +40,11 @@ public class Review {
         this.comment = comment;
     }
 
-////    public Long getProviderId() {
-////        return providerId;
-////    }
-////
-////    public void setProviderId(Long providerId) {
-////        this.providerId = providerId;
-////    }
-//
-//    public User getCustomer() {
-//        return customer;
-//    }
-//
-//    public void setCustomer(Long customerId) {
-//        this.customer = customer;
-//    }
+    public ServiceProvider getProvider() {
+        return provider;
+    }
+
+    public void setProvider(ServiceProvider provider) {
+        this.provider = provider;
+    }
 }

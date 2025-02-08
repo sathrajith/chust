@@ -2,8 +2,6 @@ package com.sp.service.provider.model;
 
 import jakarta.persistence.*;
 
-import java.util.List;
-
 @Entity
 @Table(name = "service_provider")
 public class ServiceProvider {
@@ -12,74 +10,95 @@ public class ServiceProvider {
     private Long id;
 
     private String name;
-    private String location;
-    private String serviceType; // e.g., Electrician, Cleaner, Tutor
+    private String city;
+
+    @Column(nullable = false)
+    private String serviceType;
     private String description;
     private double hourlyRate;
     private double averageRating;
-
-//    @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL)
-//    private List<Review> reviews;
+    private double rating;
+    private boolean isAvailable;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
 
-    public String getName(){
-        return name;
-    }
-    public void setName(String name){
-        this.name=name;
-    }
-    public String getLocation(){
-        return location;
-    }
-    public void setLocation(String location){
-        this.location=location;
-    }
-    public double getAverageRating(){
-        return averageRating;
-    }
-    public void setAverageRating(double averageRating){
-        this.averageRating=averageRating;
-    }
-
-//    public List<Review> getReviews(){
-//        return reviews;
-//    }
-//    public void setReviews(List<Review> reviews){
-//        this.reviews=reviews;
-//    }
-
-
-    public Long getId(){
+    // Getters and Setters
+    public Long getId() {
         return id;
     }
-    public void setId(Long id){
-        this.id=id;
+
+    public void setId(Long id) {
+        this.id = id;
     }
-    public String getServiceType(){
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getServiceType() {
         return serviceType;
     }
-    public void setServiceType(String serviceType){
-        this.serviceType=serviceType;
+
+    public void setServiceType(String serviceType) {
+        this.serviceType = serviceType;
     }
-    public String getDescription(){
+
+    public String getDescription() {
         return description;
     }
-    public void setDescription(String description){
-        this.description=description;
+
+    public void setDescription(String description) {
+        this.description = description;
     }
-    public User getUser(){
-        return user;
-    }
-    public void setUser(User user){
-        this.user=user;
-    }
-    public double getHourlyRate(){
+
+    public double getHourlyRate() {
         return hourlyRate;
     }
-    public void setHourlyRate(double hourlyRate){
-        this.hourlyRate=hourlyRate;
+
+    public void setHourlyRate(double hourlyRate) {
+        this.hourlyRate = hourlyRate;
+    }
+
+    public double getAverageRating() {
+        return averageRating;
+    }
+
+    public void setAverageRating(double averageRating) {
+        this.averageRating = averageRating;
+    }
+
+    public double getRating(){
+        return rating;
+    }
+    public void setRating(double rating){
+        this.rating=rating;
+    }
+    public boolean getAvailable(){
+        return isAvailable;
+    }
+    public void setAvailable(boolean isAvailable){
+        this.isAvailable=isAvailable;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }

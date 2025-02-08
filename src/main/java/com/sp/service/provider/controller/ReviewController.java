@@ -11,7 +11,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/reviews")
 public class ReviewController {
-
     @Autowired
     private ReviewService reviewService;
 
@@ -28,17 +27,11 @@ public class ReviewController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-//    @GetMapping("/provider/{providerId}")
-//    public ResponseEntity<List<Review>> getReviewsByProviderId(@PathVariable Long providerId) {
-//        List<Review> reviews = reviewService.getReviewsByProviderId(providerId);
-//        return ResponseEntity.ok(reviews);
-//    }
-//
-//    @GetMapping("/customer/{customerId}")
-//    public ResponseEntity<List<Review>> getReviewsByCustomerId(@PathVariable Long customerId) {
-//        List<Review> reviews = reviewService.getReviewsByCustomerId(customerId);
-//        return ResponseEntity.ok(reviews);
-//    }
+    @GetMapping("/provider/{providerId}")
+    public ResponseEntity<List<Review>> getReviewsByProviderId(@PathVariable Long providerId) {
+        List<Review> reviews = reviewService.getReviewsByProviderId(providerId);
+        return ResponseEntity.ok(reviews);
+    }
 
     @PutMapping("/{id}")
     public ResponseEntity<Review> updateReview(@PathVariable Long id, @RequestBody Review updatedReview) {

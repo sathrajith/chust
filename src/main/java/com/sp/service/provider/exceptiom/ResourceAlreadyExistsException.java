@@ -1,4 +1,4 @@
-package com.sp.service.provider.exception;
+package com.sp.service.provider.exceptiom;
 
 public class ResourceAlreadyExistsException extends RuntimeException {
     public ResourceAlreadyExistsException(String message) {

@@ -6,6 +6,7 @@ import com.sp.service.provider.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,10 +23,21 @@ public class UserController {
 
     @GetMapping("/{email}")
     public ResponseEntity<User> getUserByEmail(@PathVariable String email) {
-        User user = userService.findByEmail(email);
-        if (user == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(user);
+        return userService.findByEmail(email)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{username}/addRole")
+    public ResponseEntity<String> addRole(@PathVariable String username, @RequestParam String role) {
+        userService.addRoleToUser(username, role);
+        return ResponseEntity.ok("Role " + role + " added to user " + username);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{username}/removeRole")
+    public ResponseEntity<String> removeRole(@PathVariable String username, @RequestParam String role) {
+        userService.removeRoleFromUser(username, role);
+        return ResponseEntity.ok("Role " + role + " removed from user " + username);
     }
 }

@@ -1,25 +1,27 @@
 package com.sp.service.provider.controller;
 
+import com.sp.service.provider.dto.UserDTO;
 import com.sp.service.provider.model.User;
-import com.sp.service.provider.service.CustomUserDetailsService;
+import com.sp.service.provider.service.EmailService;
 import com.sp.service.provider.service.UserService;
 import com.sp.service.provider.util.JwtUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Arrays;
+
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -29,153 +31,152 @@ public class AuthController {
     private AuthenticationManager authenticationManager;
 
     @Autowired
-    private CustomUserDetailsService userDetailsService;
+    private UserService userService;
+
+    @Autowired
+    private EmailService emailService;
 
     @Autowired
     private JwtUtil jwtUtil;
 
     @Autowired
-    private UserService userService;
+    private PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder; // Inject PasswordEncoder
-
+    /**
+     * User Registration
+     */
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody User user) {
-        try {
-            // Check if the username already exists
-            if (userService.existsByUsername(user.getName())) {
-                return ResponseEntity.badRequest().body("Username already exists");
-            }
-
-//            if (user.getRoles() == null || user.getRoles().isEmpty()) {
-//                user.setRoles(Set.of("ROLE_USER")); // Default role
-//            }
-//
-            // Create a new user
-            User newUser = new User();
-            newUser.setName(user.getName());
-            newUser.setPassword(passwordEncoder.encode(user.getPassword())); // Encrypt password
-            newUser.setRoles(user.getRoles()); // Set roles (e.g., "ROLE_USER", "ROLE_ADMIN")
-
-            // Save the user to the database
-            userService.save(newUser);
-
-            return ResponseEntity.ok("User registered successfully");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Registration failed: " + e.getMessage());
-        }
+    public ResponseEntity<?> register(@RequestBody UserDTO userDTO) {
+        User user = userService.registerUser(userDTO);
+        return ResponseEntity.ok("User registered successfully!");
     }
 
+    /**
+     * Login Endpoint - Generates JWT Tokens
+     */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody User user, HttpServletResponse response) {
-        try {
-            // Authenticate user
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(user.getName(), user.getPassword())
-            );
+    public ResponseEntity<?> login(@RequestParam String username, @RequestParam String password, HttpServletResponse response) {
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
 
-            // Load user details and generate tokens
-            UserDetails userDetails = userDetailsService.loadUserByUsername(user.getName());
-            String accessToken = jwtUtil.generateToken(userDetails);
-            String refreshToken = jwtUtil.generateRefreshToken(userDetails);
+        UserDetails userDetails = userService.loadUserByUsername(username);
+        String accessToken = jwtUtil.generateAccessToken(userDetails);
+        String refreshToken = jwtUtil.generateRefreshToken(userDetails);
 
-            // Set access token in HTTP-only cookie
-            Cookie accessTokenCookie = createCookie("access_token", accessToken, 15 * 60); // 15 minutes
-            response.addCookie(accessTokenCookie);
+        addCookie(response, "refresh_token", refreshToken);
 
-            // Set refresh token in HTTP-only cookie
-            Cookie refreshTokenCookie = createCookie("refresh_token", refreshToken, 7 * 24 * 60 * 60); // 7 days
-            response.addCookie(refreshTokenCookie);
-
-            // Return success response
-            Map<String, Object> tokens = new HashMap<>();
-            tokens.put("access_token", accessToken);
-            tokens.put("refresh_token", refreshToken);
-            tokens.put("roles", userDetails.getAuthorities());
-            return ResponseEntity.ok(tokens);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed: " + e.getMessage());
-        }
+        Map<String, String> tokens = new HashMap<>();
+        tokens.put("access_token", accessToken);
+        return ResponseEntity.ok(tokens);
     }
 
-    @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
-        try {
-            // Extract refresh token from cookies
-            String refreshToken = Arrays.stream(request.getCookies())
-                    .filter(cookie -> "refresh_token".equals(cookie.getName()))
-                    .map(Cookie::getValue)
-                    .findFirst()
-                    .orElse(null);
-
-            if (refreshToken == null) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Refresh token missing");
-            }
-
-            // Validate refresh token
-            String username = jwtUtil.extractUsername(refreshToken);
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-
-            if (!jwtUtil.validateToken(refreshToken, userDetails)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid refresh token");
-            }
-
-            // Generate new access token
-            String newAccessToken = jwtUtil.generateToken(userDetails);
-
-            // Set new access token in HTTP-only cookie
-            Cookie accessTokenCookie = createCookie("access_token", newAccessToken, 15 * 60); // 15 minutes
-            response.addCookie(accessTokenCookie);
-
-            return ResponseEntity.ok("Token refreshed successfully");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Token refresh failed: " + e.getMessage());
-        }
-    }
-
+    /**
+     * Logout Endpoint - Clears authentication cookies
+     */
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletResponse response) {
-        // Invalidate access token cookie
-        Cookie accessTokenCookie = createCookie("access_token", null, 0);
-        response.addCookie(accessTokenCookie);
-
-        // Invalidate refresh token cookie
-        Cookie refreshTokenCookie = createCookie("refresh_token", null, 0);
-        response.addCookie(refreshTokenCookie);
-
-        return ResponseEntity.ok("Logged out successfully");
+        removeCookie(response, "access_token");
+        removeCookie(response, "refresh_token");
+        return ResponseEntity.ok("Logged out successfully!");
     }
 
-    @PostMapping("/validate")
-    public ResponseEntity<?> validateToken(@RequestBody Map<String, String> request) {
+    /**
+     * Refresh Token Endpoint - Generates new access token
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
+        String refreshToken = getCookieValue(request, "refresh_token");
+        if (refreshToken == null || !jwtUtil.validateRefreshToken(refreshToken)) {
+            return ResponseEntity.badRequest().body("Invalid or expired refresh token");
+        }
+
+        String username = jwtUtil.extractUsername(refreshToken);
+        Optional<User> userOptional = userService.findByUsername(username);
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body("User not found");
+        }
+
+        UserDetails userDetails = userService.loadUserByUsername(username);
+        String newAccessToken = jwtUtil.generateAccessToken(userDetails);
+
+        Map<String, String> tokens = new HashMap<>();
+        tokens.put("access_token", newAccessToken);
+        return ResponseEntity.ok(tokens);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        Optional<User> user = userService.findByEmail(email);
+
+        if (user.isEmpty()) {
+            return ResponseEntity.badRequest().body("Email not found");
+        }
+
+        // Generate token
+        String token = UUID.randomUUID().toString();
+        userService.saveResetToken(email, token);
+
+        // Send email
+        emailService.sendResetEmail(email, token);
+
+        return ResponseEntity.ok("Password reset email sent!");
+    }
+
+    /**
+    password reset....
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
         String token = request.get("token");
+        String newPassword = request.get("newPassword");
 
-        if (token == null || token.isEmpty()) {
-            return ResponseEntity.badRequest().body("Token is required");
+        Optional<User> user = userService.findByResetToken(token);
+        if (user.isEmpty()) {
+            return ResponseEntity.badRequest().body("Invalid or expired token");
         }
 
-        try {
-            String username = jwtUtil.extractUsername(token);
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        User updatedUser = user.get();
+        updatedUser.setPassword(passwordEncoder.encode(newPassword));
+        updatedUser.setResetToken(null); // Clear token after reset
+        userService.saveUser(updatedUser);
 
-            if (jwtUtil.validateToken(token, userDetails)) {
-                return ResponseEntity.ok("Token is valid");
-            } else {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired token");
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token validation failed: " + e.getMessage());
-        }
+        return ResponseEntity.ok("Password successfully reset!");
     }
 
-    private Cookie createCookie(String name, String value, int maxAge) {
+    /**
+     * Helper Method: Add Cookie
+     */
+    private void addCookie(HttpServletResponse response, String name, String value) {
         Cookie cookie = new Cookie(name, value);
         cookie.setHttpOnly(true);
-        cookie.setSecure(true); // Enable in production (HTTPS only)
+        cookie.setSecure(true);  // Use true in production (HTTPS)
         cookie.setPath("/");
-        cookie.setMaxAge(maxAge);
-        cookie.setAttribute("SameSite", "Strict"); // Prevent CSRF attacks
-        return cookie;
+        cookie.setMaxAge(7 * 24 * 60 * 60);
+        response.addCookie(cookie);
+    }
+
+    /**
+     * Helper Method: Remove Cookie
+     */
+    private void removeCookie(HttpServletResponse response, String name) {
+        Cookie cookie = new Cookie(name, "");
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+    }
+
+    /**
+     * Helper Method: Get Cookie Value
+     */
+    private String getCookieValue(HttpServletRequest request, String name) {
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if (cookie.getName().equals(name)) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
     }
 }
