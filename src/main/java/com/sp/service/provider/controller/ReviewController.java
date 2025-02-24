@@ -1,9 +1,10 @@
 package com.sp.service.provider.controller;
 
-import com.sp.service.provider.model.Review;
+import com.sp.service.provider.dto.ReviewDTO;
 import com.sp.service.provider.service.ReviewService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.sp.service.provider.util.JwtUtil;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,37 +12,71 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/reviews")
 public class ReviewController {
-    @Autowired
-    private ReviewService reviewService;
 
+    private final ReviewService reviewService;
+    private final JwtUtil jwtUtil;
+
+    public ReviewController(ReviewService reviewService, JwtUtil jwtUtil) {
+        this.reviewService = reviewService;
+        this.jwtUtil = jwtUtil;
+    }
+
+    /**
+     * ✅ Get recent reviews for a provider
+     */
+    @GetMapping("/provider/recent")
+    @PreAuthorize("hasRole('SERVICE_PROVIDER')")
+    public ResponseEntity<List<ReviewDTO>> getRecentReviews(@RequestHeader("Authorization") String token) {
+        Long providerId = extractUserIdFromToken(token);
+        return ResponseEntity.ok(reviewService.getRecentReviews(providerId));
+    }
+
+    /**
+     * ✅ Get all reviews for a specific service
+     */
+    @GetMapping("/service/{serviceId}")
+    public ResponseEntity<List<ReviewDTO>> getReviewsByService(@PathVariable Long serviceId) {
+        return ResponseEntity.ok(reviewService.getReviewsByService(serviceId));
+    }
+
+    /**
+     * ✅ Get all reviews by a user
+     */
+    @GetMapping("/user/{userId}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<List<ReviewDTO>> getReviewsByUser(@PathVariable Long userId) {
+        return ResponseEntity.ok(reviewService.getReviewsByUser(userId));
+    }
+
+    /**
+     * ✅ Submit a new review (Only users who booked the service)
+     */
     @PostMapping
-    public ResponseEntity<Review> createReview(@RequestBody Review review) {
-        Review createdReview = reviewService.createReview(review);
-        return ResponseEntity.ok(createdReview);
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ReviewDTO> addReview(@RequestBody ReviewDTO reviewDTO,
+                                               @RequestHeader("Authorization") String token) {
+        Long userId = extractUserIdFromToken(token);
+
+        return ResponseEntity.ok(reviewService.addReview(reviewDTO, userId));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Review> getReviewById(@PathVariable Long id) {
-        return reviewService.getReviewById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @GetMapping("/provider/{providerId}")
-    public ResponseEntity<List<Review>> getReviewsByProviderId(@PathVariable Long providerId) {
-        List<Review> reviews = reviewService.getReviewsByProviderId(providerId);
-        return ResponseEntity.ok(reviews);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<Review> updateReview(@PathVariable Long id, @RequestBody Review updatedReview) {
-        Review review = reviewService.updateReview(id, updatedReview);
-        return ResponseEntity.ok(review);
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteReview(@PathVariable Long id) {
-        reviewService.deleteReview(id);
+    /**
+     * ✅ Admin deletes an inappropriate review
+     */
+    @DeleteMapping("/{reviewId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteReview(@PathVariable Long reviewId) {
+        reviewService.deleteReview(reviewId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * ✅ Extract user ID from JWT token
+     */
+    private Long extractUserIdFromToken(String token) {
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        return jwtUtil.extractUserId(token);
     }
 }

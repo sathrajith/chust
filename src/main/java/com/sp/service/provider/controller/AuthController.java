@@ -9,14 +9,13 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.core.userdetails.UserDetails;
-
 
 import java.util.HashMap;
 import java.util.Map;
@@ -47,27 +46,46 @@ public class AuthController {
      */
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody UserDTO userDTO) {
-        User user = userService.registerUser(userDTO);
-        return ResponseEntity.ok("User registered successfully!");
+        try {
+            User user = userService.registerUser(userDTO);
+
+            String subject = " Welcome to chusit,";
+            String text = "Dear "+ user.getUsername() + " thank you for choosing us";
+            emailService.sendEmail(user.getEmail(), subject, text);
+            return ResponseEntity.ok("User registered successfully!");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Registration failed: " + e.getMessage());
+        }
     }
+
+
 
     /**
      * Login Endpoint - Generates JWT Tokens
      */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestParam String username, @RequestParam String password, HttpServletResponse response) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> request, HttpServletResponse response) {
+        String username = request.get("username");
+        String password = request.get("password");
+
+        if (username == null || password == null) {
+            return ResponseEntity.badRequest().body("Missing username or password");
+        }
+
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
 
         UserDetails userDetails = userService.loadUserByUsername(username);
-        String accessToken = jwtUtil.generateAccessToken(userDetails);
-        String refreshToken = jwtUtil.generateRefreshToken(userDetails);
+        String accessToken = jwtUtil.generateAccessToken(userDetails.getUsername());
+        String refreshToken = jwtUtil.generateRefreshToken(userDetails.getUsername());
 
         addCookie(response, "refresh_token", refreshToken);
 
         Map<String, String> tokens = new HashMap<>();
         tokens.put("access_token", accessToken);
+        tokens.put("refresh_token", refreshToken);
         return ResponseEntity.ok(tokens);
     }
+
 
     /**
      * Logout Endpoint - Clears authentication cookies
@@ -96,7 +114,7 @@ public class AuthController {
         }
 
         UserDetails userDetails = userService.loadUserByUsername(username);
-        String newAccessToken = jwtUtil.generateAccessToken(userDetails);
+        String newAccessToken = jwtUtil.generateAccessToken(userDetails.getUsername()); // Use username
 
         Map<String, String> tokens = new HashMap<>();
         tokens.put("access_token", newAccessToken);
@@ -109,7 +127,7 @@ public class AuthController {
         Optional<User> user = userService.findByEmail(email);
 
         if (user.isEmpty()) {
-            return ResponseEntity.badRequest().body("Email not found");
+            return ResponseEntity.badRequest().body(Map.of("error", "Email not found"));
         }
 
         // Generate token
@@ -117,13 +135,16 @@ public class AuthController {
         userService.saveResetToken(email, token);
 
         // Send email
-        emailService.sendResetEmail(email, token);
+        String subject = "Password Reset Request";
+        String text = "To reset your password, click the link: http://yourapp.com/reset-password?token=" + token;
+        emailService.sendEmail(email, subject, text);
 
-        return ResponseEntity.ok("Password reset email sent!");
+        return ResponseEntity.ok(Map.of("message", "Password reset email sent!"));
     }
 
+
     /**
-    password reset....
+     * Password Reset Endpoint
      */
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
@@ -139,6 +160,10 @@ public class AuthController {
         updatedUser.setPassword(passwordEncoder.encode(newPassword));
         updatedUser.setResetToken(null); // Clear token after reset
         userService.saveUser(updatedUser);
+
+        String subject = "Password Reset Confirmation";
+        String text = "Your password has been successfully reset.";
+        emailService.sendEmail(updatedUser.getEmail(), subject, text);
 
         return ResponseEntity.ok("Password successfully reset!");
     }
@@ -178,5 +203,25 @@ public class AuthController {
             }
         }
         return null;
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String otp = request.get("otp");
+
+        // Verify OTP
+        try {
+            String accessToken = userService.verifyOtp(email, otp);
+
+            // Send OTP verification success email
+            String subject = "OTP Verification Successful";
+            String text = "Your OTP has been successfully verified.";
+            emailService.sendEmail(email, subject, text);
+
+            return ResponseEntity.ok(Map.of("message", "OTP verified successfully!", "access_token", accessToken));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }

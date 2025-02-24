@@ -1,5 +1,6 @@
 package com.sp.service.provider.controller;
 
+import com.sp.service.provider.dto.ServiceProviderDTO;
 import com.sp.service.provider.dto.UserDTO;
 import com.sp.service.provider.model.User;
 import com.sp.service.provider.service.UserService;
@@ -8,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -20,6 +23,14 @@ public class UserController {
         User user = userService.registerUser(userDTO);
         return ResponseEntity.ok(user);
     }
+
+    //@PreAuthorize("hasAnyRole('USER', 'PROVIDER', 'ADMIN')")
+    @GetMapping("/providers")
+    public ResponseEntity<List<ServiceProviderDTO>> getServiceProviders() {
+        List<ServiceProviderDTO> providers = userService.getServiceProviders();
+        return ResponseEntity.ok(providers);
+    }
+
 
     @GetMapping("/{email}")
     public ResponseEntity<User> getUserByEmail(@PathVariable String email) {

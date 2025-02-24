@@ -24,6 +24,26 @@ public class ServiceProvider {
     @JoinColumn(name = "user_id")
     private User user;
 
+
+    //constructors
+
+    // Default constructor (needed for JPA)
+    public ServiceProvider() {}
+
+    // All-args constructor
+    public ServiceProvider(Long id, String name, String city, String serviceType, String description,
+                           double hourlyRate, double averageRating, int rating, boolean isAvailable) {
+        this.id = id;
+        this.name = name;
+        this.city = city;
+        this.serviceType = serviceType;
+        this.description = description;
+        this.hourlyRate = hourlyRate;
+        this.averageRating = averageRating;
+        this.rating = rating;
+        this.isAvailable = isAvailable;
+    }
+
     // Getters and Setters
     public Long getId() {
         return id;
@@ -87,7 +107,7 @@ public class ServiceProvider {
     public void setRating(double rating){
         this.rating=rating;
     }
-    public boolean getAvailable(){
+    public boolean isAvailable(){
         return isAvailable;
     }
     public void setAvailable(boolean isAvailable){
