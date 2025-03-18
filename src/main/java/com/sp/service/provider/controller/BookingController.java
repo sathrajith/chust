@@ -25,7 +25,7 @@ public class BookingController {
     @PostMapping("/{userId}/create")
     public ResponseEntity<Booking> createBooking(@PathVariable Long userId, @RequestBody Booking booking) {
         Booking newBooking = bookingService.createBooking(booking, userId);
-        return ResponseEntity.ok(newBooking);
+        return ResponseEntity.ok(newBooking);  // This sends the newly created booking as the response
     }
 
     /**
@@ -35,7 +35,7 @@ public class BookingController {
     @GetMapping("/{bookingId}/{userId}")
     public ResponseEntity<Optional<Booking>> getBookingById(@PathVariable Long bookingId, @PathVariable Long userId) {
         Optional<Booking> booking = bookingService.getBookingById(bookingId, userId);
-        return ResponseEntity.ok(booking);
+        return ResponseEntity.ok(booking);  // Return the booking by ID
     }
 
     /**
@@ -45,7 +45,7 @@ public class BookingController {
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<List<Booking>> getBookingsByCustomer(@PathVariable Long customerId) {
         List<Booking> bookings = bookingService.getBookingsByCustomerId(customerId);
-        return ResponseEntity.ok(bookings);
+        return ResponseEntity.ok(bookings);  // Return the bookings for a specific customer
     }
 
     /**
@@ -55,7 +55,7 @@ public class BookingController {
     @GetMapping("/provider/{providerId}")
     public ResponseEntity<List<Booking>> getBookingsByProvider(@PathVariable Long providerId) {
         List<Booking> bookings = bookingService.getBookingsByProviderId(providerId);
-        return ResponseEntity.ok(bookings);
+        return ResponseEntity.ok(bookings);  // Return bookings for a provider
     }
 
     /**
@@ -66,7 +66,7 @@ public class BookingController {
     public ResponseEntity<Booking> updateBookingStatus(@PathVariable Long bookingId, @PathVariable Long providerId,
                                                        @RequestParam BookingStatus status) {
         Booking updatedBooking = bookingService.updateBookingStatus(bookingId, providerId, status);
-        return ResponseEntity.ok(updatedBooking);
+        return ResponseEntity.ok(updatedBooking);  // Return the updated booking status
     }
 
     /**
@@ -86,6 +86,6 @@ public class BookingController {
     @GetMapping("/all")
     public ResponseEntity<List<Booking>> getAllBookings() {
         List<Booking> bookings = bookingService.getAllBookings();
-        return ResponseEntity.ok(bookings);
+        return ResponseEntity.ok(bookings);  // Return all bookings for admin
     }
 }

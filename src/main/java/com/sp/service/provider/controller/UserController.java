@@ -18,11 +18,11 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@Valid @RequestBody UserDTO userDTO) {
-        User user = userService.registerUser(userDTO);
-        return ResponseEntity.ok(user);
-    }
+//    @PostMapping("/register")
+//    public ResponseEntity<User> registerUser(@Valid @RequestBody UserDTO userDTO) {
+//        User user = userService.registerUser(userDTO);
+//        return ResponseEntity.ok(user);
+//    }
 
     //@PreAuthorize("hasAnyRole('USER', 'PROVIDER', 'ADMIN')")
     @GetMapping("/providers")

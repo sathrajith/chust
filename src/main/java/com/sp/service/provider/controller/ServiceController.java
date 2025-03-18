@@ -27,10 +27,10 @@ public class ServiceController {
     /**
      * Get services by category (Accessible by all)
      */
-    @GetMapping("/category/{category}")
-    public ResponseEntity<List<ServiceEntity>> getServicesByCategory(@PathVariable String category) {
-        return ResponseEntity.ok(serviceService.getServicesByCategory(category));
-    }
+//    @GetMapping("/category/{category}")
+//    public ResponseEntity<List<ServiceEntity>> getServicesByCategory(@PathVariable String category) {
+//        return ResponseEntity.ok(serviceService.getServicesByCategory(category));
+//    }
 
     /**
      * Get services by provider (Accessible by all)

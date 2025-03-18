@@ -55,6 +55,7 @@ public class JwtUtil {
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
+
     // Validate Refresh Token (Doesn't require UserDetails)
     public Boolean validateRefreshToken(String token) {
         return !isTokenExpired(token);
@@ -84,6 +85,8 @@ public class JwtUtil {
             logger.error("JWT token is null, empty, or undefined");
             throw new MalformedJwtException("JWT token is null, empty, or undefined");
         }
+
+        // Validate token structure
         validateTokenStructure(token); // Validate token structure
         try {
             return Jwts.parserBuilder()
@@ -92,10 +95,11 @@ public class JwtUtil {
                     .parseClaimsJws(token)
                     .getBody();
         } catch (MalformedJwtException e) {
-            logger.error("Malformed JWT: {}", token, e);
+            logger.error("Malformed JWT: {}", token, e);  // Log the error and token
             throw e;
         }
     }
+
 
 
     private void validateTokenStructure(String token) {

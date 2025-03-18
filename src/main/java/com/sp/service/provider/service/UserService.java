@@ -64,6 +64,7 @@ public class UserService implements UserDetailsService {
         user.setDescription(userDTO.getDescription());
         user.setHourlyRate(userDTO.getHourlyRate());
         user.setAvailable(userDTO.isAvailable());
+        user.setVerified(true);  // Bypass OTP and directly set as verified
 
         Set<Role> roles = new HashSet<>();
         if (userDTO.getServiceType() != null && !userDTO.getServiceType().isEmpty()) {
@@ -113,9 +114,9 @@ public class UserService implements UserDetailsService {
             throw new RuntimeException("Invalid credentials: Password mismatch");
         }
 
-        if (!user.isVerified()) {
-            throw new RuntimeException("Account not verified. Check your email for OTP.");
-        }
+//        if (!user.isVerified()) {
+//            throw new RuntimeException("Account not verified. Check your email for OTP.");
+//        }
 
         String token = jwtUtil.generateAccessToken(user.getUsername());
         System.out.println("✅ Authentication Successful! Token: " + token);

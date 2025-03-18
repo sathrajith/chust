@@ -5,12 +5,10 @@ import com.sp.service.provider.dto.ProviderStatsDTO;
 import com.sp.service.provider.dto.ReviewDTO;
 import com.sp.service.provider.dto.ServiceProviderDTO;
 import com.sp.service.provider.exceptiom.ResourceNotFoundException;
+import com.sp.service.provider.model.Favorite;
 import com.sp.service.provider.model.ServiceProvider;
 import com.sp.service.provider.model.User;
-import com.sp.service.provider.repository.BookingRepository;
-import com.sp.service.provider.repository.ReviewRepository;
-import com.sp.service.provider.repository.ServiceProviderRepository;
-import com.sp.service.provider.repository.UserRepository;
+import com.sp.service.provider.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.sp.service.provider.specification.ServiceProviderSpecification;
@@ -36,6 +34,10 @@ public class ServiceProviderService {
 
     @Autowired
     private BookingRepository bookingRepository;
+
+    @Autowired
+    private FavoriteRepository favoriteRepository;
+
 
     @Transactional(readOnly = true)
     public ProviderStatsDTO getProviderStats(Long providerId) {
@@ -88,6 +90,52 @@ public class ServiceProviderService {
         provider.setUser(user);
 
         return serviceProviderRepository.save(provider);
+    }
+
+
+    /**
+     * Add a service provider to the user's favorites list.
+     */
+    @Transactional
+    public String addServiceProviderToFavorites(Long userId, Long serviceProviderId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        ServiceProvider serviceProvider = serviceProviderRepository.findById(serviceProviderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Service Provider not found with id: " + serviceProviderId));
+
+        // Check if the service provider is already in the user's favorites
+        if (favoriteRepository.existsByUserIdAndServiceProviderId(userId, serviceProviderId)) {
+            return "Service provider is already in your favorites!";
+        }
+
+        // Add to favorites
+        Favorite favorite = new Favorite(user, serviceProvider);
+        favoriteRepository.save(favorite);
+        return "Service provider added to favorites!";
+    }
+
+    /**
+     * Remove a service provider from the user's favorites list.
+     */
+    @Transactional
+    public String removeServiceProviderFromFavorites(Long userId, Long serviceProviderId) {
+        Favorite favorite = favoriteRepository.findByUserIdAndServiceProviderId(userId, serviceProviderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Favorite not found for the given user and service provider"));
+
+        favoriteRepository.delete(favorite);
+        return "Service provider removed from favorites!";
+    }
+
+    /**
+     * Get all favorites for a user
+     */
+    @Transactional(readOnly = true)
+    public List<ServiceProvider> getFavoritesForUser(Long userId) {
+        List<Favorite> favorites = favoriteRepository.findByUserId(userId);
+        return favorites.stream()
+                .map(Favorite::getServiceProvider)
+                .collect(Collectors.toList());
     }
 
     /**

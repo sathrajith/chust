@@ -28,6 +28,11 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
+        String requestPath = request.getServletPath();
+        if (requestPath.startsWith("/api/auth/")) {
+            chain.doFilter(request, response); // Skip JWT filter for authentication endpoints
+            return;
+        }
         final String authorizationHeader = request.getHeader("Authorization");
 
         String username = null;
@@ -37,6 +42,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             jwt = authorizationHeader.substring(7);
             username = jwtUtil.extractUsername(jwt);
         }
+
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userService.loadUserByUsername(username);

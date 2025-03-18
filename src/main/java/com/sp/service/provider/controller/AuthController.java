@@ -42,26 +42,33 @@ public class AuthController {
     private PasswordEncoder passwordEncoder;
 
     /**
-     * User Registration
+     * User Registration - Allows registration without OTP verification
      */
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody UserDTO userDTO) {
         try {
+            System.out.println("🔍 Registering user: " + userDTO.getUsername());
             User user = userService.registerUser(userDTO);
+            System.out.println("✅ User registered successfully: " + user.getUsername());
 
-            String subject = " Welcome to chusit,";
-            String text = "Dear "+ user.getUsername() + " thank you for choosing us";
-            emailService.sendEmail(user.getEmail(), subject, text);
-            return ResponseEntity.ok("User registered successfully!");
+            // Return a JSON response with a message
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "User registered successfully!");
+
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Registration failed: " + e.getMessage());
+            System.err.println("❌ Registration failed: " + e.getMessage());
+            // Return a JSON error response
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Registration failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         }
     }
 
 
-
     /**
-     * Login Endpoint - Generates JWT Tokens
+     * Login Endpoint - Generates JWT Tokens (No OTP required)
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> request, HttpServletResponse response) {
@@ -86,7 +93,6 @@ public class AuthController {
         return ResponseEntity.ok(tokens);
     }
 
-
     /**
      * Logout Endpoint - Clears authentication cookies
      */
@@ -98,7 +104,7 @@ public class AuthController {
     }
 
     /**
-     * Refresh Token Endpoint - Generates new access token
+     * Refresh Token Endpoint - Generates new access token (No OTP required)
      */
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
@@ -121,6 +127,9 @@ public class AuthController {
         return ResponseEntity.ok(tokens);
     }
 
+    /**
+     * Password Reset Endpoint - Allows password reset without OTP verification
+     */
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
@@ -142,9 +151,8 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "Password reset email sent!"));
     }
 
-
     /**
-     * Password Reset Endpoint
+     * Password Reset Endpoint - Allows resetting the password with a token
      */
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
@@ -203,25 +211,5 @@ public class AuthController {
             }
         }
         return null;
-    }
-
-    @PostMapping("/verify-otp")
-    public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
-        String email = request.get("email");
-        String otp = request.get("otp");
-
-        // Verify OTP
-        try {
-            String accessToken = userService.verifyOtp(email, otp);
-
-            // Send OTP verification success email
-            String subject = "OTP Verification Successful";
-            String text = "Your OTP has been successfully verified.";
-            emailService.sendEmail(email, subject, text);
-
-            return ResponseEntity.ok(Map.of("message", "OTP verified successfully!", "access_token", accessToken));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
     }
 }

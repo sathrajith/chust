@@ -34,10 +34,10 @@ public class ReviewController {
     /**
      * ✅ Get all reviews for a specific service
      */
-    @GetMapping("/service/{serviceId}")
-    public ResponseEntity<List<ReviewDTO>> getReviewsByService(@PathVariable Long serviceId) {
-        return ResponseEntity.ok(reviewService.getReviewsByService(serviceId));
-    }
+//    @GetMapping("/service/{serviceId}")
+//    public ResponseEntity<List<ReviewDTO>> getReviewsByService(@PathVariable Long serviceId) {
+//        return ResponseEntity.ok(reviewService.getReviewsByService(serviceId));
+//    }
 
     /**
      * ✅ Get all reviews by a user
