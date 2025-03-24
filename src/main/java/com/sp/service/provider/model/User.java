@@ -6,6 +6,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -31,8 +32,12 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String phoneNumber;
 
+    @Column(nullable = true)
+    private String profileImage;
+
     @JsonIgnore
     private String resetToken;
+    private LocalDateTime resetTokenExpiry;
 
     private boolean isVerified = true;
 
@@ -67,6 +72,8 @@ public class User implements UserDetails {
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
     public String getResetToken() { return resetToken; }
     public void setResetToken(String resetToken) { this.resetToken = resetToken; }
+    public LocalDateTime getResetTokenExpiry() { return resetTokenExpiry; }
+    public void setResetTokenExpiry(LocalDateTime resetTokenExpiry){ this.resetTokenExpiry = resetTokenExpiry; }
     public boolean isVerified() { return isVerified; }
     public void setVerified(boolean verified) { isVerified = verified; }
     public String getOtp() { return otp; }
@@ -98,6 +105,11 @@ public class User implements UserDetails {
         this.hourlyRate = hourlyRate;
     }
 
+
+    //proifile image
+
+    public String profileImage() { return profileImage; }
+    public void setProfileImage(String profileImage) { this.profileImage = profileImage; }
     // Getter and Setter for rating
     public double getRating() {
         return rating;

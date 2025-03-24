@@ -4,6 +4,7 @@ import com.sp.service.provider.dto.UserDTO;
 import com.sp.service.provider.model.User;
 import com.sp.service.provider.service.EmailService;
 import com.sp.service.provider.service.UserService;
+import com.sp.service.provider.util.JwtTokenUtil;
 import com.sp.service.provider.util.JwtUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +18,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -39,6 +41,9 @@ public class AuthController {
     private JwtUtil jwtUtil;
 
     @Autowired
+    private JwtTokenUtil jwtTokenUtil;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     /**
@@ -48,18 +53,37 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody UserDTO userDTO) {
         try {
             System.out.println("🔍 Registering user: " + userDTO.getUsername());
+
+            // Register user
             User user = userService.registerUser(userDTO);
+
             System.out.println("✅ User registered successfully: " + user.getUsername());
 
-            // Return a JSON response with a message
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "User registered successfully!");
+            // Generate a JWT token for the newly registered user
+            String accessToken = jwtTokenUtil.generateToken(user.getUsername());
+            String refreshToken = jwtUtil.generateRefreshToken(user.getUsername());
+            System.out.println("Generated accessToken: " + accessToken);
+            System.out.println("Generated refreshToken: " + refreshToken);
 
+            // Prepare the response with token, user details, and a success message
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "User registered successfully!");
+            response.put("accessToken", accessToken);  // Return accessToken
+            response.put("refreshToken", refreshToken); // Include the JWT token
+            response.put("user", new HashMap<String, Object>() {{
+                put("id", user.getId());
+               // put("name", user.getName());
+                put("email", user.getEmail());
+                put("username", user.getUsername());
+                put("phoneNumber", user.getPhoneNumber());
+                put("role", user.getRoles());
+            }});
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             System.err.println("❌ Registration failed: " + e.getMessage());
-            // Return a JSON error response
+
+            // Return error response with the message
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("error", "Registration failed: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
@@ -114,8 +138,8 @@ public class AuthController {
         }
 
         String username = jwtUtil.extractUsername(refreshToken);
-        Optional<User> userOptional = userService.findByUsername(username);
-        if (userOptional.isEmpty()) {
+        User user = userService.findByUsername(username);  // Directly check for null here
+        if (user == null) {
             return ResponseEntity.badRequest().body("User not found");
         }
 
@@ -151,9 +175,6 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "Password reset email sent!"));
     }
 
-    /**
-     * Password Reset Endpoint - Allows resetting the password with a token
-     */
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
         String token = request.get("token");
@@ -165,8 +186,13 @@ public class AuthController {
         }
 
         User updatedUser = user.get();
+        if (updatedUser.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body("Token has expired");
+        }
+
         updatedUser.setPassword(passwordEncoder.encode(newPassword));
         updatedUser.setResetToken(null); // Clear token after reset
+        updatedUser.setResetTokenExpiry(null); // Clear expiry time
         userService.saveUser(updatedUser);
 
         String subject = "Password Reset Confirmation";
@@ -175,7 +201,6 @@ public class AuthController {
 
         return ResponseEntity.ok("Password successfully reset!");
     }
-
     /**
      * Helper Method: Add Cookie
      */
@@ -186,6 +211,21 @@ public class AuthController {
         cookie.setPath("/");
         cookie.setMaxAge(7 * 24 * 60 * 60);
         response.addCookie(cookie);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<User> getCurrentUser(@RequestHeader("Authorization") String token) {
+        // Extract username or user ID from the token
+        String username = jwtTokenUtil.getUsernameFromToken(token);
+
+        // Fetch user details from the database
+        User user = userService.findByUsername(username);
+
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        return ResponseEntity.ok(user);
     }
 
     /**

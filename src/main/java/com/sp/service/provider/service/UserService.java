@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -189,12 +190,23 @@ public class UserService implements UserDetailsService {
         return userRepository.findAll(pageable);
     }
 
+
+    /**
+     *
+     * @param userId
+     * @return
+     */
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
     /**
      * Find user by username (Only ADMIN or the same user can view details)
      */
     //@PreAuthorize("hasRole('ADMIN') or #username == authentication.name")
-    public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(username);
+    public User findByUsername(String username) {
+        Optional<User> userOptional = userRepository.findByUsername(username);
+        return userOptional.orElseThrow(() -> new RuntimeException("User not found"));
     }
 
     /**
@@ -211,13 +223,14 @@ public class UserService implements UserDetailsService {
     public void saveResetToken(String email, String token) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
         user.setResetToken(token);
+        user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
         userRepository.save(user);
     }
 
     /**
      * Find user by reset token (Only ADMIN or user themselves)
      */
-    @PreAuthorize("hasRole('ADMIN') or #token == authentication.principal.resetToken")
+  //  @PreAuthorize("hasRole('ADMIN') or #token == authentication.principal.resetToken")
     public Optional<User> findByResetToken(String token) {
         return userRepository.findByResetToken(token);
     }
@@ -225,7 +238,7 @@ public class UserService implements UserDetailsService {
     /**
      * Save user (Only ADMIN can create or update users)
      */
-    @PreAuthorize("hasRole('ADMIN')")
+  //  @PreAuthorize("hasRole('ADMIN')")
     public void saveUser(User user) {
         userRepository.save(user);
     }

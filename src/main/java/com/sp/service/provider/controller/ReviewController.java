@@ -24,12 +24,12 @@ public class ReviewController {
     /**
      * ✅ Get recent reviews for a provider
      */
-    @GetMapping("/provider/recent")
-    @PreAuthorize("hasRole('SERVICE_PROVIDER')")
-    public ResponseEntity<List<ReviewDTO>> getRecentReviews(@RequestHeader("Authorization") String token) {
-        Long providerId = extractUserIdFromToken(token);
-        return ResponseEntity.ok(reviewService.getRecentReviews(providerId));
-    }
+//    @GetMapping("/provider/recent")
+//    @PreAuthorize("hasRole('SERVICE_PROVIDER')")
+//    public ResponseEntity<List<ReviewDTO>> getRecentReviews(@RequestHeader("Authorization") String token) {
+//        Long providerId = extractUserIdFromToken(token);
+//        return ResponseEntity.ok(reviewService.getRecentReviews(providerId));
+//    }
 
     /**
      * ✅ Get all reviews for a specific service

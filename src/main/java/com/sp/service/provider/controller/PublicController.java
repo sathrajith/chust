@@ -10,6 +10,7 @@ import com.sp.service.provider.service.UserService;
 import com.sp.service.provider.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,8 +30,8 @@ public class PublicController {
     @Autowired
     private ServiceService serviceService;
 
-//    @Autowired
-//    private JwtUtil jwtUtil;
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @GetMapping("/providers")
     public ResponseEntity<List<ServiceProviderDTO>> getServiceProviders() {
@@ -48,17 +49,24 @@ public class PublicController {
         return ResponseEntity.ok(serviceService.getServicesByCategory(category));
     }
 
-//    public ResponseEntity<ReviewDTO> addReview(@RequestBody ReviewDTO reviewDTO,
-//                                               @RequestHeader("Authorization") String token) {
-//        Long userId = extractUserIdFromToken(token);
-//
-//        return ResponseEntity.ok(reviewService.addReview(reviewDTO, userId));
-//    }
-//
-//    private Long extractUserIdFromToken(String token) {
-//        if (token.startsWith("Bearer ")) {
-//            token = token.substring(7);
-//        }
-//        return jwtUtil.extractUserId(token);
-//    }
+    @GetMapping("/provider/recent")
+    @PreAuthorize("hasRole('SERVICE_PROVIDER')")
+    public ResponseEntity<List<ReviewDTO>> getRecentReviews(@RequestHeader("Authorization") String token) {
+        Long providerId = extractUserIdFromToken(token);
+        return ResponseEntity.ok(reviewService.getRecentReviews(providerId));
+    }
+
+    public ResponseEntity<ReviewDTO> addReview(@RequestBody ReviewDTO reviewDTO,
+                                               @RequestHeader("Authorization") String token) {
+        Long userId = extractUserIdFromToken(token);
+
+        return ResponseEntity.ok(reviewService.addReview(reviewDTO, userId));
+    }
+
+    private Long extractUserIdFromToken(String token) {
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        return jwtUtil.extractUserId(token);
+    }
 }

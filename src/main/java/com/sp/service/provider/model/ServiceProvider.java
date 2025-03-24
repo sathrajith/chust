@@ -20,6 +20,9 @@ public class ServiceProvider {
     private double rating;
     private boolean isAvailable;
 
+
+
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
